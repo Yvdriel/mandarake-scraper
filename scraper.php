@@ -5,6 +5,7 @@ class Mandarake
 {
     protected $cookies;
     public $exchange;
+    public $db;
 
     // Shipping rates to The Netherlands as of September 27, 2023
     const DHL_SHIPPING = [
@@ -145,6 +146,7 @@ class Mandarake
     {
         $this->cookies = $this->getCookies();
         $this->exchange = $this->getExchangeRate();
+        $this->db = new SQLite3('mandarake.db');
     }
 
     private function getCookies()
@@ -199,6 +201,42 @@ class Mandarake
 
         return (float) $html->find('.text-success', 0)->plaintext;
     }
+
+    public function create($data)
+    {
+        // Insert query
+        $sql = "INSERT INTO items (
+            title, key, price, shipping, total, currency, price_eu, shipping_eu, total_eu, size, weight, full_url, images, item_code, store
+        ) VALUES (
+            :title, :key, :price, :shipping, :total, :currency, :price_eu, :shipping_eu, :total_eu, :size, :weight, :full_url, :images, :item_code, :store
+        )";
+
+        // Prepare and execute statement
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':title', $data['title'], SQLITE3_TEXT);
+        $stmt->bindValue(':key', $data['key'], SQLITE3_TEXT);
+        $stmt->bindValue(':price', $data['price'], SQLITE3_FLOAT);
+        $stmt->bindValue(':shipping', $data['shipping'], SQLITE3_FLOAT);
+        $stmt->bindValue(':total', $data['total'], SQLITE3_FLOAT);
+        $stmt->bindValue(':currency', $data['currency'], SQLITE3_TEXT);
+        $stmt->bindValue(':price_eu', $data['price_eu'], SQLITE3_FLOAT);
+        $stmt->bindValue(':shipping_eu', $data['shipping_eu'], SQLITE3_FLOAT);
+        $stmt->bindValue(':total_eu', $data['total_eu'], SQLITE3_FLOAT);
+        $stmt->bindValue(':size', $data['size'], SQLITE3_TEXT);
+        $stmt->bindValue(':weight', $data['weight'], SQLITE3_FLOAT);
+        $stmt->bindValue(':full_url', $data['full_url'], SQLITE3_TEXT);
+        $stmt->bindValue(':images', json_encode($data['images']), SQLITE3_TEXT);
+        $stmt->bindValue(':item_code', $data['item_code'], SQLITE3_TEXT);
+        $stmt->bindValue(':store', $data['store'], SQLITE3_TEXT);
+
+        $result = $stmt->execute();
+
+        if ($result) {
+            echo "Record inserted successfully\n";
+        } else {
+            echo "Failed to insert record\n";
+        }
+    }
 }
 
 $url = "https://order.mandarake.co.jp/order/listPage/list?categoryCode=110107&lang=en";
@@ -209,7 +247,7 @@ $data_indexes = $mandarake->getDataIndexes($html);
 $gathered = [];
 foreach($data_indexes as $key => $index) {
     $current = $mandarake->getContentWithCookie($index);
-    $soldout = $current->find(".soldout", 0)->plaintext;
+    $soldout = $current->find(".soldout", 0)->plaintext ?? false;
 
     if ($soldout) return;
 
@@ -242,6 +280,7 @@ foreach($data_indexes as $key => $index) {
     }
 
     $gathered[$key] = [
+        'key' => $key,
         'title' => $title,
         'price' => $price,
         'shipping' => $shipping,
@@ -257,9 +296,7 @@ foreach($data_indexes as $key => $index) {
         'item_code' => $item_code,
         'store' => trim($store),
     ];
-}
 
-echo '<pre>';
-var_dump($gathered);
-echo '</pre>';
+    $mandarake->create($gathered[$key]);
+}
 ?>
