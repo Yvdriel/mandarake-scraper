@@ -233,9 +233,7 @@ class Mandarake
 
         $result = $stmt->execute();
 
-        if ($result) {
-            echo "Record inserted successfully <br />";
-        } else {
+        if (!$result) {
             echo "Failed to insert record <br />";
         }
     }
@@ -314,8 +312,8 @@ class Mandarake
 $url = "https://order.mandarake.co.jp/order/listPage/list?soldOut=1&categoryCode=110107&lang=en";
 $mandarake = new Mandarake();
 
-// Scrape first 5 pages
-for ($i = 1 ; $i < 6; $i++) {
+// Scrape first 20 pages
+for ($i = 1 ; $i < 20; $i++) {
     $u = $url;
     if ($i > 1) {
         $u = $url . '&page=' . $i;

@@ -22,7 +22,6 @@
 </head>
 <?php
 $terms = [
-    'demon',
     'slayer',
     'demon slayer',
     'naruto',
@@ -44,8 +43,8 @@ $terms = [
     'komisan',
     'chainsaw',
     'chainsaw man',
+    'chain saw man',
     'shingeki no kyojin',
-    'kyojin',
     'attack on titan',
     'jujutsu kaisen',
     'jujutsu',
@@ -62,6 +61,9 @@ $terms = [
     'kagyua sama',
     'kagyua-sama',
     'kagyuasama',
+    'dragon ball',
+    'citrus',
+    'seven deadly',
     'violet evergarden'
 ];
 
