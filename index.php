@@ -21,51 +21,7 @@
     </script>
 </head>
 <?php
-$terms = [
-    'slayer',
-    'demon slayer',
-    'naruto',
-    'bleach',
-    'one piece',
-    'fairy tail',
-    'frieren',
-    'spy',
-    'x family',
-    'spy x family',
-    'spyxfamily',
-    'fullmetal',
-    'alchemist',
-    'death note',
-    'deathnote',
-    'a silent voice',
-    'silent voice',
-    'komi',
-    'komisan',
-    'chainsaw',
-    'chainsaw man',
-    'chain saw man',
-    'shingeki no kyojin',
-    'attack on titan',
-    'jujutsu kaisen',
-    'jujutsu',
-    'berserk',
-    'vinland',
-    'vinland saga',
-    'boku no hero',
-    'my hero',
-    'koe no katachi',
-    'tokyo revengers',
-    'revengers',
-    'horimiya',
-    'blue lock',
-    'kagyua sama',
-    'kagyua-sama',
-    'kagyuasama',
-    'dragon ball',
-    'citrus',
-    'seven deadly',
-    'violet evergarden'
-];
+require 'mandarake.php';
 
 $db = new SQLite3('mandarake.db');
 $sql = "SELECT * FROM items ORDER BY id DESC;";
@@ -73,7 +29,7 @@ $sql = "SELECT * FROM items ORDER BY id DESC;";
 if (isset($_GET['type']) && $_GET['type'] == 'popular') {
     $sql = "SELECT * FROM items WHERE ";
     $conditions = [];
-    foreach ($terms as $index => $term) {
+    foreach (Mandarake::TERMS as $index => $term) {
         $placeholder = ":term_$index";
         $conditions[] = "LOWER(title) LIKE $placeholder";
     }
@@ -83,7 +39,7 @@ if (isset($_GET['type']) && $_GET['type'] == 'popular') {
     $stmt = $db->prepare($sql);
     
     // Bind the values to the placeholders
-    foreach ($terms as $index => $term) {
+    foreach (Mandarake::TERMS as $index => $term) {
         $placeholder = ":term_$index";
         $stmt->bindValue($placeholder, '%' . $term . '%', SQLITE3_TEXT);
     }
