@@ -21,11 +21,75 @@
     </script>
 </head>
 <?php
+$terms = [
+    'demon',
+    'slayer',
+    'demon slayer',
+    'naruto',
+    'bleach',
+    'one piece',
+    'fairy tail',
+    'frieren',
+    'spy',
+    'x family',
+    'spy x family',
+    'spyxfamily',
+    'fullmetal',
+    'alchemist',
+    'death note',
+    'deathnote',
+    'a silent voice',
+    'silent voice',
+    'komi',
+    'komisan',
+    'chainsaw',
+    'chainsaw man',
+    'shingeki no kyojin',
+    'kyojin',
+    'attack on titan',
+    'jujutsu kaisen',
+    'jujutsu',
+    'berserk',
+    'vinland',
+    'vinland saga',
+    'boku no hero',
+    'my hero',
+    'koe no katachi',
+    'tokyo revengers',
+    'revengers',
+    'horimiya',
+    'blue lock',
+    'kagyua sama',
+    'kagyua-sama',
+    'kagyuasama',
+    'violet evergarden'
+];
+
 $db = new SQLite3('mandarake.db');
+$sql = "SELECT * FROM items ORDER BY id DESC;";
 
-$sql = "SELECT * FROM items;";
+if (isset($_GET['type']) && $_GET['type'] == 'popular') {
+    $sql = "SELECT * FROM items WHERE ";
+    $conditions = [];
+    foreach ($terms as $index => $term) {
+        $placeholder = ":term_$index";
+        $conditions[] = "LOWER(title) LIKE $placeholder";
+    }
+    $sql .= implode(' OR ', $conditions);
+    $sql .= ' ORDER BY total DESC';
+    // Prepare the statement
+    $stmt = $db->prepare($sql);
+    
+    // Bind the values to the placeholders
+    foreach ($terms as $index => $term) {
+        $placeholder = ":term_$index";
+        $stmt->bindValue($placeholder, '%' . $term . '%', SQLITE3_TEXT);
+    }
+} else {
+    $stmt = $db->prepare($sql);
+}
 
-$result = $db->query($sql);
+$result = $stmt->execute();
 
 $newArray = [];
 while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
@@ -33,16 +97,39 @@ while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
 }
 ?>
 
-<body class="p-12">
+<body class="p-12 lg:w-4/5 m-auto">
     <div class="text-center text-stone-800 pt-10 pb-4 text-6xl font-black">
         <?php echo count($newArray) ?> Entries
     </div>
-    <div 
-        class="p-4 bg-green-300 rounded-xl cursor-pointer select-none text-center" 
-        onclick="toggleAll(<?php echo count($newArray) ?>)"
-    >
-        Toggle All Images <small class="italic">(at own risk lol)</small>
+
+    <div class="grid md:grid-cols-2 gap-4">
+        <?php
+        if (isset($_GET['type']) && $_GET['type'] == 'popular') {
+            ?>
+            <a href="/">
+                <div class="text-center bg-red-300 rounded-xl w-full py-4">
+                    Browse all entries
+                </div>
+            </a>
+            <?php
+        } else {
+        ?>
+            <a href="?type=popular">
+                <div class="text-center bg-blue-300 rounded-xl w-full py-4">
+                    Browse popular terms
+                </div>
+            </a>
+        <?php
+        }
+        ?>
+        <div 
+            class="p-4 bg-green-300 rounded-xl cursor-pointer select-none text-center" 
+            onclick="toggleAll(<?php echo count($newArray) ?>)"
+        >
+            Toggle All Images <small class="italic">(at own risk lol)</small>
+        </div>
     </div>
+    
 
     <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4 pt-4 text-white">
         <?php
@@ -50,7 +137,10 @@ while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
         ?>
             <div class="bg-fuchsia-950 rounded-xl text-center border border-solid border-black">
                 <div class="font-bold px-4 pt-4"><?php echo $value['title'] ?></div>
-                <div class="p-4">
+
+                <div class="p-4">                
+                    <div class="my-6 h-0 border border-dashed border-white w-full">
+                    </div>
                     <div class="grid grid-cols-3">
                         <div class="font-semibold">
                             Price

@@ -189,6 +189,8 @@ class Mandarake
         $data_indexes = [];
         foreach($html->find('.thumlarge', 0)->children() as $key => $value) {
             if (!$value->{'data-itemidx'}) continue;
+            if ($this->get($value->{'data-itemidx'})) continue;
+
             $data_indexes[$value->{'data-itemidx'}] = 'https://order.mandarake.co.jp/order/detailPage/item?itemCode=' . $value->{'data-itemidx'} . '&ref=list&categoryCode=110107&lang=en';
         }
     
@@ -232,71 +234,96 @@ class Mandarake
         $result = $stmt->execute();
 
         if ($result) {
-            echo "Record inserted successfully\n";
+            echo "Record inserted successfully <br />";
         } else {
-            echo "Failed to insert record\n";
+            echo "Failed to insert record <br />";
         }
     }
-}
 
-$url = "https://order.mandarake.co.jp/order/listPage/list?categoryCode=110107&lang=en";
-$mandarake = new Mandarake();
-$html = $mandarake->getContentWithCookie($url);
-$data_indexes = $mandarake->getDataIndexes($html);
+    public function get($key)
+    {
+        $sql = "SELECT key FROM items WHERE key = :key";
 
-$gathered = [];
-foreach($data_indexes as $key => $index) {
-    $current = $mandarake->getContentWithCookie($index);
-    $soldout = $current->find(".soldout", 0)->plaintext ?? false;
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':key', $key, SQLITE3_TEXT);
 
-    if ($soldout) return;
+        return $stmt->execute()->fetchArray(SQLITE3_ASSOC);
+    }
 
-    $price = str_replace(array('.', ','), '' , $current->find( "meta[itemprop=price]", 0)->content);
-    $currency = $current->find( "meta[itemprop=priceCurrency]", 0)->content;
-    $title = str_replace('New Arrivals', '', $current->find("h1", 0)->plaintext);
-    $item_code = $current->find(".__itemno", 0)->plaintext;
-    $store = $current->find(".__shop", 0)->plaintext;
-    $size = $current->find(".size", 0)->find("td", 0)->find("p", 0)->plaintext;
+    public function formatAndCreate($data_indexes)
+    {
+        foreach($data_indexes as $key => $index) {
+            $current = $this->getContentWithCookie($index);
 
-    $parts = explode('/', $size);
-    $size = trim($parts[0]);
-    $weight = trim($parts[count($parts) - 1]);
-
-    $shipping = 0;
-    $found = false;
-    foreach (Mandarake::DHL_SHIPPING as $k => $value) {
-        if ($k >= str_replace('g', '', $weight)) {
-            if ($found) {
-                $shipping = $value;
-                break;
+            // Skip Soldout inserts
+            $soldout = $current->find(".soldout", 0)->plaintext ?? false;
+            if ($soldout) return;
+        
+            // Format Input
+            $price = str_replace(array('.', ','), '' , $current->find( "meta[itemprop=price]", 0)->content);
+            $currency = $current->find( "meta[itemprop=priceCurrency]", 0)->content;
+            $title = str_replace('New Arrivals', '', $current->find("h1", 0)->plaintext);
+            $item_code = $current->find(".__itemno", 0)->plaintext;
+            $store = $current->find(".__shop", 0)->plaintext;
+            $size = $current->find(".size", 0)->find("td", 0)->find("p", 0)->plaintext;
+        
+            $parts = explode('/', $size);
+            $size = trim($parts[0]);
+            $weight = trim($parts[count($parts) - 1]);
+        
+            $shipping = 0;
+            $found = false;
+            foreach (Mandarake::DHL_SHIPPING as $k => $value) {
+                if ($k >= str_replace('g', '', $weight)) {
+                    if ($found) {
+                        $shipping = $value;
+                        break;
+                    }
+                    $found = true;
+                }
             }
-            $found = true;
+        
+            $images = [];
+            foreach($current->find('.elevatezoom-gallery') as $value) {
+                $images[] = $value->{'data-image'};
+            }
+        
+            $data = [
+                'key' => $key,
+                'title' => $title,
+                'price' => $price,
+                'shipping' => $shipping,
+                'total' => $price + $shipping,
+                'currency' => $currency,
+                'price_eu' => round(($this->exchange * $price), 2),
+                'shipping_eu' => round(($this->exchange * $shipping), 2),
+                'total_eu' => round(($this->exchange * ($price + $shipping)), 2),
+                'size' => $size,
+                'weight' => $weight,
+                'full_url' => $index,
+                'images' => $images,
+                'item_code' => $item_code,
+                'store' => trim($store),
+            ];
+        
+            $this->create($data);
         }
     }
+}
 
-    $images = [];
-    foreach($current->find('.elevatezoom-gallery') as $value) {
-        $images[] = $value->{'data-image'};
+$url = "https://order.mandarake.co.jp/order/listPage/list?soldOut=1&categoryCode=110107&lang=en";
+$mandarake = new Mandarake();
+
+// Scrape first 5 pages
+for ($i = 1 ; $i < 6; $i++) {
+    $u = $url;
+    if ($i > 1) {
+        $u = $url . '&page=' . $i;
     }
 
-    $gathered[$key] = [
-        'key' => $key,
-        'title' => $title,
-        'price' => $price,
-        'shipping' => $shipping,
-        'total' => $price + $shipping,
-        'currency' => $currency,
-        'price_eu' => round(($mandarake->exchange * $price), 2),
-        'shipping_eu' => round(($mandarake->exchange * $shipping), 2),
-        'total_eu' => round(($mandarake->exchange * ($price + $shipping)), 2),
-        'size' => $size,
-        'weight' => $weight,
-        'full_url' => $index,
-        'images' => $images,
-        'item_code' => $item_code,
-        'store' => trim($store),
-    ];
-
-    $mandarake->create($gathered[$key]);
+    $html = $mandarake->getContentWithCookie($u);
+    $data_indexes = $mandarake->getDataIndexes($html);
+    $mandarake->formatAndCreate($data_indexes);
 }
+
 ?>
