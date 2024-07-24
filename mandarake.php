@@ -45,6 +45,7 @@ class Mandarake
         'kagyuasama',
         'dragon ball',
         'citrus',
+        'spy',
         'seven deadly',
         'violet evergarden'
     ];

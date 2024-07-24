@@ -8,6 +8,25 @@
     <script   src="https://code.jquery.com/jquery-3.7.1.min.js"   integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="   crossorigin="anonymous"></script>
     <script>
         var toggled = false;
+        var priceArray = {};
+        function sumValues(obj) {
+            let sum = 0;
+            for (let key in obj) {
+                if (obj.hasOwnProperty(key) && typeof obj[key] === 'number') {
+                    sum += parseFloat(obj[key]);
+                }
+            }
+            return Math.round(sum * 100) / 100;
+        }
+        function isEmpty(obj) {
+            for (const prop in obj) {
+                if (Object.hasOwn(obj, prop)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
         function toggleImages(key) {
             $(`#${key}`).toggle();
         }
@@ -17,6 +36,33 @@
                 toggled = true;
                 $('.card-content').toggle();
             }
+        }
+        function toggleTotalPrice(key, total) {
+            $(`#${key}`).prop('checked', !$(`#${key}`).is(':checked'))
+
+            if (!$(`#${key}`).is(':checked')) {
+                delete priceArray[key];
+                if (isEmpty(priceArray)) {
+                    $('.total-selected').hide();
+                }
+
+                $('.total-selected').html('€' + sumValues(priceArray));
+                return;
+            };
+
+
+            $('.total-selected').show();
+            priceArray[key] = (parseFloat($(`#total_eu_${key}`).text()));
+            $('.total-selected').html('€' + sumValues(priceArray));
+        }
+        function hideCards() {
+            $('.card-parent').each(function() {
+                // Check if the child checkbox is not checked
+                if (!$(this).find('input[type="checkbox"]').is(':checked')) {
+                    // Hide the div if the checkbox is not checked
+                    $(this).toggle();
+                }
+            });
         }
     </script>
 </head>
@@ -59,7 +105,12 @@ while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
     <div class="text-center text-stone-800 pt-10 pb-4 text-6xl font-black">
         <?php echo count($newArray) ?> Entries
     </div>
-
+    <div 
+        class="hidden cursor-pointer total-selected fixed bottom-10 right-10 px-6 py-3 rounded bg-green-200 z-40 font-bold border border-solid border-1 border-green-600 shadow-md"
+        onclick="hideCards()"
+    >
+        0
+    </div>
     <div class="grid md:grid-cols-2 gap-4">
         <?php
         if (isset($_GET['type']) && $_GET['type'] == 'popular') {
@@ -93,9 +144,19 @@ while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
         <?php
         foreach ($newArray as $value) {
         ?>
-            <div class="bg-fuchsia-950 rounded-xl text-center border border-solid border-black">
-                <div class="font-bold px-4 pt-4"><?php echo $value['title'] ?></div>
-
+            <div 
+                class="card-parent bg-fuchsia-950 shadow-md rounded-xl text-center border border-solid border-black" 
+                onclick="toggleTotalPrice(<?php echo $value['key'] ?>, <?php echo $value['total_eu'] ?>)"
+            >
+                <div class="flex items-top px-4 pt-4 gap-4">
+                    <div class="font-bold"><?php echo $value['title'] ?></div>
+                    <input
+                        id="<?php echo $value['key'] ?>" 
+                        class="cursor-pointer card-checkbox w-5 h-5" 
+                        type="checkbox"
+                        onclick="this.checked=!this.checked;"
+                    />
+                </div>
                 <div class="p-4">                
                     <div class="my-6 h-0 border border-dashed border-white w-full">
                     </div>
@@ -134,6 +195,7 @@ while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
                         <div class="bg-fuchsia-700 rounded-b font-black pb-1">
                             €<?php echo $value['total_eu'] ?>
                         </div>
+                        <div id="total_eu_<?php echo $value['key'] ?>" class="hidden"><?php echo $value['total_eu'] ?></div>
                     </div>
 
                     <div class="my-6 h-0 border border-dashed border-white w-full">
