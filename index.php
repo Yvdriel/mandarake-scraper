@@ -172,7 +172,7 @@ while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
                             </div>
                         </div>
                         <div class="font-semibold bg-fuchsia-700 rounded-t">
-                            Total
+                            Total incl. import
                             <div class="h-0 opacity-40 border border-[0.5px] border-solid border-white w-full">
                             </div>
                         </div>
@@ -193,9 +193,40 @@ while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
                             €<?php echo $value['shipping_eu'] ?>
                         </div>
                         <div class="bg-fuchsia-700 rounded-b font-black pb-1">
-                            €<?php echo $value['total_eu'] ?>
+                            €<?php echo (round($value['total_eu'] * 1.21, 2)) ?>
                         </div>
-                        <div id="total_eu_<?php echo $value['key'] ?>" class="hidden"><?php echo $value['total_eu'] ?></div>
+                        <div id="total_eu_<?php echo $value['key'] ?>" class="hidden"><?php echo (round($value['total_eu'] * 1.21, 2)) ?></div>
+                    </div>
+                    <div class="my-2 h-0 border border-dashed border-white w-full opacity-50">
+                    </div>
+                    <div class="grid grid-cols-3">
+                        <div class="font-semibold">
+                            MSP
+                            <div class="h-0 opacity-40 border border-[0.5px] border-solid border-white w-full">
+                            </div>
+                        </div>
+                        <div class="font-semibold">
+                            MSP Profit
+                            <div class="h-0 opacity-40 border border-[0.5px] border-solid border-white w-full">
+                            </div>
+                        </div>
+                        <div class="font-semibold">
+                            PPV
+                            <div class="h-0 opacity-40 border border-[0.5px] border-solid border-white w-full">
+                            </div>
+                        </div>
+                        <div>
+                            €<?php echo (round(($value['total_eu'] * 1.21) * 1.25, 2)) ?>
+                        </div> 
+                        <div>
+                            €<?php echo (round((($value['total_eu'] * 1.21) * 1.25) - ($value['total_eu'] * 1.21), 2)) ?>
+                        </div>
+                        <div>
+                            €<?php echo (round((($value['total_eu'] * 1.21) * 1.25) / $value['volume_count'], 2)) ?>
+                        </div>
+                    </div>
+                    <div>
+                        4.50
                     </div>
 
                     <div class="my-6 h-0 border border-dashed border-white w-full">
